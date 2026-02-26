@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Images - Flash Cards Video Creator</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .image-option {
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .image-option:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        .image-option.selected {
+            border-color: #28a745;
+            transform: scale(1.02);
+        }
+        .image-option img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background-color: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        .image-option img.thumbnail {
+            filter: blur(1px);
+            opacity: 0.8;
+        }
+        .image-option img.preview {
+            filter: none;
+            opacity: 1;
+        }
+        .image-option:hover img.thumbnail {
+            filter: none;
+        }
+        .image-option video {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background-color: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+        .video-controls {
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            right: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.7);
+            border-radius: 5px;
+            padding: 5px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        .image-option:hover .video-controls {
+            opacity: 1;
+        }
+        .video-play-btn {
+            background: rgba(255,255,255,0.9);
+            border: none;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #333;
+            font-size: 12px;
+        }
+        .video-play-btn:hover {
+            background: white;
+        }
+        .loading-placeholder {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+        }
+        .item-section {
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+        .item-title {
+            color: #495057;
+            border-bottom: 3px solid #007bff;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .selection-counter {
+            background: #007bff;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 25px;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0,123,255,0.3);
+        }
+        .photographer-credit {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+        
+        /* Enhanced grid layout for 5 images */
+        .col-5th {
+            flex: 0 0 20%;
+            max-width: 20%;
+        }
+        @media (max-width: 1199px) {
+            .col-5th {
+                flex: 0 0 25%;
+                max-width: 25%;
+            }
+        }
+        
+        /* Performance optimizations */
+        .image-grid {
+            contain: layout style paint;
+        }
+        
+        .image-skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+        }
+        
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        
+        /* Better spacing for image options */
+        .image-option {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .image-option img {
+            flex-grow: 1;
+            object-fit: cover;
+        }
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            color: white;
+        }
+        .loading-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+        .progress-step {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+        }
+        .step-complete {
+            color: #28a745;
+        }
+        .step-active {
+            color: #ffc107;
+        }
+        .step-pending {
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-play-circle me-2"></i>Flash Cards Video Creator
+            </a>
+            <span class="navbar-text">
+                Select {{ 'Videos' if session_data.content_type == 'video' else 'Images' }} for: <strong>{{ session_data.prompt }}</strong>
+            </span>
+        </div>
+    </nav>
+
+        <div class="selection-counter">
+        <i class="fas fa-check-circle me-2"></i>
+        <span id="selectionCount">0</span> / {{ session_data.item_list|length if session_data.item_list else 0 }} selected
+    </div>    <div class="container my-5">
+        <div class="text-center mb-5">
+            <h1>Select the Best Images</h1>
+            <p class="lead">Choose one image for each flashcard item. Click on an image to select it.</p>
+            <div id="loadingStatus" class="alert alert-info" style="display: none;">
+                <i class="fas fa-spinner fa-spin me-2"></i>Loading images...
+            </div>
+        </div>
+
+        {% for item in session_data.item_list %}
+        <div class="item-section">
+            <h3 class="item-title">
+                <i class="fas fa-image me-2"></i>{{ item }}
+            </h3>
+            
+            {% if session_data.images and session_data.images[item] %}
+            <div class="row image-grid">
+                {% for image in session_data.images[item] %}
+                <div class="col-5th col-md-3 col-sm-4 col-6 mb-3">
+                    <div class="image-option" data-item="{{ item }}" data-image-id="{{ image.id }}" 
+                         data-thumbnail="{{ image.thumbnail }}" 
+                         data-preview="{{ image.preview if image.preview else image.thumbnail }}">
+                        <div class="position-relative">
+                            <img src="{{ image.thumbnail }}" alt="{{ image.alt }}" 
+                                 class="thumbnail" loading="lazy"
+                                 onload="this.style.opacity=1">
+                            {% if image.type == 'video' %}
+                            <div class="position-absolute top-0 end-0 p-1">
+                                <span class="badge bg-danger">
+                                    <i class="fas fa-play me-1"></i>{{ image.duration }}s
+                                </span>
+                            </div>
+                            <div class="position-absolute top-50 start-50 translate-middle">
+                                <i class="fas fa-play-circle text-white" style="font-size: 2rem; opacity: 0.8;"></i>
+                            </div>
+                            {% endif %}
+                            {% if image.get('is_default', False) %}
+                            <div class="position-absolute top-0 start-0 p-1">
+                                <span class="badge bg-info">
+                                    <i class="fas fa-image me-1"></i>Default
+                                </span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="p-2">
+                            <div class="photographer-credit">
+                                <i class="fas fa-{{ 'video' if image.type == 'video' else 'camera' }} me-1"></i>by {{ image.photographer }} 
+                                <small>({{ image.source }})</small>
+                                {% if image.type == 'video' %}
+                                <br><small class="text-muted">{{ image.quality }} quality, {{ image.width }}x{{ image.height }}</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                No {{ 'videos' if session_data.content_type == 'video' else 'images' }} found for "{{ item }}". A text-only card will be created.
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+
+        <div class="text-center mt-5">
+            <button class="btn btn-success btn-lg me-3" onclick="proceedToVideoCreation()" disabled id="proceedBtn">
+                <i class="fas fa-play me-2"></i>Create Video
+            </button>
+            <a href="/" class="btn btn-secondary btn-lg">
+                <i class="fas fa-arrow-left me-2"></i>Start Over
+            </a>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-content">
+            <div class="spinner-border spinner-border-lg mb-4" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <h3>Creating Your Flash Cards Video</h3>
+            <p>This may take a few minutes...</p>
+            
+            <div class="progress-step step-pending" id="step-save">
+                <i class="fas fa-save me-2"></i>Saving selections...
+            </div>
+            <div class="progress-step step-pending" id="step-audio">
+                <i class="fas fa-volume-up me-2"></i>Generating audio...
+            </div>
+            <div class="progress-step step-pending" id="step-video">
+                <i class="fas fa-video me-2"></i>Creating video...
+            </div>
+            <div class="progress-step step-pending" id="step-complete">
+                <i class="fas fa-check me-2"></i>Video ready!
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const sessionId = '{{ session_id }}';
+        const selections = {};
+        const totalItems = {{ session_data.item_list|length if session_data.item_list else 0 }};
+
+        // Progressive loading: Start with tiny thumbnails, upgrade on hover
+        const loadedPreviews = new Set();
+        
+        function loadPreviewImage(option) {
+            const img = option.querySelector('img');
+            const previewUrl = option.dataset.preview;
+            
+            if (!loadedPreviews.has(option.dataset.imageId) && previewUrl) {
+                loadedPreviews.add(option.dataset.imageId);
+                
+                // Create new image to preload
+                const previewImg = new Image();
+                previewImg.onload = () => {
+                    img.src = previewUrl;
+                    img.classList.remove('thumbnail');
+                    img.classList.add('preview');
+                };
+                previewImg.src = previewUrl;
+            }
+        }
+        
+        // Add hover listeners for progressive loading
+        document.querySelectorAll('.image-option').forEach(option => {
+            option.addEventListener('mouseenter', () => {
+                loadPreviewImage(option);
+            });
+            
+            // Also load when scrolled into view
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        setTimeout(() => loadPreviewImage(option), 500); // Small delay
+                        observer.unobserve(option);
+                    }
+                });
+            }, { rootMargin: '100px' });
+            
+            observer.observe(option);
+        });
+
+        // Handle image selection
+        document.querySelectorAll('.image-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const item = this.dataset.item;
+                const imageId = this.dataset.imageId;
+                
+                // Remove selection from other images for this item
+                document.querySelectorAll(`[data-item="${item}"]`).forEach(opt => {
+                    opt.classList.remove('selected');
+                });
+                
+                // Select this image
+                this.classList.add('selected');
+                
+                // Store selection
+                const imageData = {{ session_data.images|tojson }};
+                selections[item] = imageData[item].find(img => img.id == imageId);
+                
+                updateSelectionCounter();
+            });
+        });
+
+        function updateSelectionCounter() {
+            const count = Object.keys(selections).length;
+            document.getElementById('selectionCount').textContent = count;
+            
+            // Enable proceed button when all items are selected or user has made some selections
+            const proceedBtn = document.getElementById('proceedBtn');
+            if (count > 0) {
+                proceedBtn.disabled = false;
+                proceedBtn.classList.remove('btn-secondary');
+                proceedBtn.classList.add('btn-success');
+            } else {
+                proceedBtn.disabled = true;
+                proceedBtn.classList.remove('btn-success');
+                proceedBtn.classList.add('btn-secondary');
+            }
+        }
+
+        async function proceedToVideoCreation() {
+            // Show loading overlay
+            document.getElementById('loadingOverlay').style.display = 'block';
+            
+            // Add timeout to prevent infinite loading
+            const timeout = setTimeout(() => {
+                console.error('Video creation timeout after 5 minutes');
+                alert('⏰ Video creation is taking longer than expected.\n\nThis might indicate an issue. Please check the server logs or try again.');
+            }, 300000); // 5 minutes timeout
+            
+            try {
+                // Step 1: Save selections
+                updateStep('step-save', 'active');
+                await fetch('/save_selections', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        selections: selections
+                    })
+                });
+                updateStep('step-save', 'complete');
+
+                // Step 2: Generate audio
+                updateStep('step-audio', 'active');
+                const audioResponse = await fetch(`/generate_audio/${sessionId}`);
+                const audioData = await audioResponse.json();
+                
+                if (audioData.error) {
+                    throw new Error(audioData.error);
+                }
+                updateStep('step-audio', 'complete');
+
+                // Step 3: Create video
+                updateStep('step-video', 'active');
+                const videoResponse = await fetch(`/create_video/${sessionId}`);
+                const videoData = await videoResponse.json();
+                
+                if (videoData.error) {
+                    throw new Error(videoData.error);
+                }
+                updateStep('step-video', 'complete');
+
+                // Step 4: Complete
+                updateStep('step-complete', 'complete');
+                
+                // Clear timeout and redirect to progress page
+                clearTimeout(timeout);
+                setTimeout(() => {
+                    window.location.href = `/progress/${sessionId}`;
+                }, 2000);
+
+            } catch (error) {
+                clearTimeout(timeout);
+                console.error('Video creation error:', error);
+                alert('❌ Error creating video: ' + error.message + '\n\nPlease try again or check the console for more details.');
+                document.getElementById('loadingOverlay').style.display = 'none';
+                
+                // Reset all steps to pending
+                ['step-save', 'step-audio', 'step-video', 'step-complete'].forEach(stepId => {
+                    updateStep(stepId, 'pending');
+                });
+            }
+        }
+
+        function updateStep(stepId, status) {
+            const step = document.getElementById(stepId);
+            step.classList.remove('step-pending', 'step-active', 'step-complete');
+            step.classList.add('step-' + status);
+        }
+
+        // Auto-select first image if user scrolls past item (optional UX enhancement)
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (!entry.isIntersecting) {
+                    const item = entry.target.querySelector('.item-title').textContent.trim().replace('🖼️', '').trim();
+                    
+                    // If no selection made for this item, auto-select first image
+                    if (!selections[item]) {
+                        const firstImage = entry.target.querySelector('.image-option');
+                        if (firstImage) {
+                            // Uncomment to enable auto-selection
+                            // firstImage.click();
+                        }
+                    }
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.item-section').forEach(section => {
+            observer.observe(section);
+        });
+    </script>
+</body>
+</html>

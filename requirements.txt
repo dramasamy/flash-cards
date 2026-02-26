@@ -1,0 +1,17 @@
+Flask==2.3.3
+requests==2.31.0
+PyYAML==6.0.1
+openai>=1.35.0
+azure-cognitiveservices-speech==1.38.0
+Pillow==10.0.1
+moviepy==1.0.3
+ffmpeg-python==0.2.0
+pydub==0.25.1
+python-dotenv==1.0.0
+numpy<2  # Keep NumPy 1.x for compatibility
+redis==4.6.0  # For caching (optional)
+celery==5.3.1  # For background tasks (optional)
+gunicorn==21.2.0  # For production deployment
+google-api-python-client==2.108.0  # YouTube Data API v3
+google-auth-httplib2==0.1.1
+google-auth-oauthlib==1.1.0

@@ -1,0 +1,78 @@
+# Flash Cards Video Creator Configuration
+
+# API Keys
+api_keys:
+  openai: ""  # OpenAI API key (fallback if Azure OpenAI not configured)
+  azure_openai_key: ""  # Azure OpenAI key
+  azure_openai_endpoint: ""  # Azure OpenAI endpoint (e.g., "https://eastus.api.cognitive.microsoft.com/")
+  azure_openai_deployment: ""  # Azure OpenAI deployment name (e.g., "gpt-4")
+  pexels: ""  # Pexels API key (https://www.pexels.com/api/)
+  unsplash: ""  # Unsplash Access Key (https://unsplash.com/developers)
+  pixabay: ""  # Pixabay API key (optional, https://pixabay.com/api/docs/)
+
+# Azure Text-to-Speech Configuration
+azure_tts:
+  subscription_key: ""  # Azure Speech Services key
+  region: "eastus"  # e.g., "eastus"
+  voice_name: "en-US-AvaMultilingualNeural"  # Default voice
+  language: "en-US"
+
+# YouTube Upload Configuration
+youtube:
+  enabled: true  # Set to false to disable YouTube uploads
+  auto_upload: false  # Set to true for automatic upload, false for manual
+  client_secrets_file: "youtube_client_secrets.json"  # OAuth2 credentials file
+  upload_privacy: "unlisted"  # public, unlisted, or private
+  default_title_template: "Flash Cards: {prompt} - Educational Video"
+  default_description: |
+    Educational flash cards video to help you learn about {prompt}.
+    
+    This video helps you learn with visual and audio cues.
+    Perfect for students, teachers, and anyone looking to expand their knowledge!
+    
+    #Education #FlashCards #Learning #Educational #StudyTips
+  default_tags: ["education", "flashcards", "learning", "educational", "study", "knowledge"]
+  category_id: "27"  # Education category
+
+# Video Configuration
+video:
+  max_duration_seconds: 120  # 2 minutes
+  max_items: 30  # Maximum number of items/cards
+  image_display_duration: 4  # seconds per image (when using images)
+  video_clip_duration: 2  # seconds per video clip (when using videos)
+  video_clip_min_duration: 2  # minimum seconds per video clip
+  video_clip_max_duration: 2  # maximum seconds per video clip
+  resolution: "1920x1080"  # Video resolution
+  fps: 30  # Frames per second
+
+# Image Configuration
+images:
+  download_count: 5  # Number of images to download per item
+  preferred_provider: "pexels"  # pexels, unsplash, pixabay
+  content_type: "image"  # "image" or "video" - type of content to search for
+  image_size: "large"  # small, medium, large - size for final video
+  search_orientation: "landscape"  # landscape, portrait, square
+  thumbnail_size: "tiny"  # tiny (~8KB, 200x280), small (~4.5KB, 130px) - for fast selection page loading
+  preview_size: "medium"  # Size shown during selection (~21KB)
+  include_defaults: true  # Add default/placeholder images as 6th option
+  default_images_folder: "default_images"  # Folder containing default placeholder images
+
+# Cache Configuration
+cache:
+  enabled: true
+  ttl_hours: 24  # Time to live for cached data
+  max_size_mb: 500  # Maximum cache size
+
+# Output Configuration
+output:
+  video_format: "mp4"
+  audio_format: "wav"
+  subtitle_font: "Arial Bold"
+  subtitle_size: 48
+  subtitle_color: "white"
+  subtitle_outline_color: "black"
+  subtitle_outline_width: 3
+  subtitle_shadow: true
+  subtitle_position: "bottom_center"
+  subtitle_background: true
+  subtitle_background_color: "black_transparent"

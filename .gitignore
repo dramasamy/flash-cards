@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# pytest
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project - secrets & credentials
+config.yaml
+youtube_client_secrets.json
+youtube_token.pickle
+
+# Project - generated/temporary
+cache/
+temp/
+output/
+*.mp4
+*.wav
+*.srt
+
+# Logs
+*.log

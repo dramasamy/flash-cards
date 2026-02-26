@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Template</title>
+</head>
+<body>
+    <h1>Test Data</h1>
+    <p>Prompt: {{ session_data.prompt }}</p>
+    <p>Items count: {{ session_data.item_list|length }}</p>
+    <p>Items type: {{ session_data.item_list.__class__.__name__ }}</p>
+    <ul>
+    {% for item in session_data.item_list %}
+        <li>{{ item }}</li>
+    {% endfor %}
+    </ul>
+</body>
+</html>

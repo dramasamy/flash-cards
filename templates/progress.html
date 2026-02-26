@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progress - Flash Cards Video Creator</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .progress-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .status-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .status-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 1.5rem;
+        }
+        .status-complete {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-active {
+            background: #fff3cd;
+            color: #856404;
+            animation: pulse 2s infinite;
+        }
+        .status-pending {
+            background: #f8f9fa;
+            color: #6c757d;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/">
+                <i class="fas fa-play-circle me-2"></i>Flash Cards Video Creator
+            </a>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <div class="progress-container">
+            <h1 class="text-center mb-5">Creating Your Flash Cards Video</h1>
+            
+            <div class="status-card text-center">
+                <div class="status-icon {{ 'status-complete' if session_data.status in ['items_generated', 'images_fetched', 'images_selected', 'audio_generated', 'video_created'] else 'status-pending' }}">
+                    <i class="fas fa-lightbulb"></i>
+                </div>
+                <h4>Generate Items</h4>
+                <p>Creating flashcard items for "{{ session_data.prompt }}"</p>
+                {% if items_count > 0 %}
+                <small class="text-muted">{{ items_count }} items generated</small>
+                {% endif %}
+            </div>
+
+            <div class="status-card text-center">
+                <div class="status-icon {{ 'status-complete' if session_data.status in ['images_fetched', 'images_selected', 'audio_generated', 'video_created'] else ('status-active' if session_data.status == 'items_generated' else 'status-pending') }}">
+                    <i class="fas fa-{{ 'video' if session_data.content_type == 'video' else 'images' }}"></i>
+                </div>
+                <h4>Fetch {{ 'Videos' if session_data.content_type == 'video' else 'Images' }}</h4>
+                <p>Finding high-quality {{ 'videos' if session_data.content_type == 'video' else 'images' }} for each item</p>
+                {% if session_data.images %}
+                <small class="text-muted">{{ 'Videos' if session_data.content_type == 'video' else 'Images' }} ready for selection</small>
+                {% endif %}
+            </div>
+
+            <div class="status-card text-center">
+                <div class="status-icon {{ 'status-complete' if session_data.status in ['images_selected', 'audio_generated', 'video_created'] else ('status-active' if session_data.status == 'images_fetched' else 'status-pending') }}">
+                    <i class="fas fa-mouse-pointer"></i>
+                </div>
+                <h4>Select {{ 'Videos' if session_data.content_type == 'video' else 'Images' }}</h4>
+                <p>Choose the best {{ 'video' if session_data.content_type == 'video' else 'image' }} for each flashcard</p>
+                {% if selected_count > 0 %}
+                <small class="text-muted">{{ selected_count }} {{ 'videos' if session_data.content_type == 'video' else 'images' }} selected</small>
+                {% endif %}
+            </div>
+
+            <div class="status-card text-center">
+                <div class="status-icon {{ 'status-complete' if session_data.status in ['audio_generated', 'video_created'] else ('status-active' if session_data.status == 'images_selected' else 'status-pending') }}">
+                    <i class="fas fa-volume-up"></i>
+                </div>
+                <h4>Generate Audio</h4>
+                <p>Creating voiceovers using Azure Text-to-Speech</p>
+                {% if session_data.audio_files %}
+                <small class="text-muted">Audio files ready</small>
+                {% endif %}
+            </div>
+
+            <div class="status-card text-center">
+                <div class="status-icon {{ 'status-complete' if session_data.status in ['video_created', 'downloaded'] else ('status-active' if session_data.status == 'audio_generated' else 'status-pending') }}">
+                    <i class="fas fa-video"></i>
+                </div>
+                <h4>Create Video</h4>
+                <p>Combining {{ 'videos' if session_data.content_type == 'video' else 'images' }}, audio, and subtitles into final video</p>
+                {% if session_data.video_path %}
+                <small class="text-muted">
+                    {% if session_data.status == 'downloaded' %}
+                    Video created successfully! ✅
+                    {% if session_data.youtube_info %}
+                    <br><i class="fab fa-youtube text-danger"></i> Uploaded to YouTube!
+                    {% endif %}
+                    {% else %}
+                    Video created successfully!
+                    {% endif %}
+                </small>
+                {% endif %}
+            </div>
+
+            {% if session_data.status in ['video_created', 'downloaded'] %}
+            <div class="status-card text-center">
+                <div class="status-icon status-{{ 'complete' if session_data.youtube_info else 'active' }}">
+                    <i class="fab fa-youtube"></i>
+                </div>
+                <h4>Upload to YouTube</h4>
+                <p>Making your video available on YouTube</p>
+                {% if session_data.youtube_info %}
+                <small class="text-muted">
+                    Uploaded as "{{ session_data.youtube_info.privacy|title }}" ✅
+                </small>
+                {% else %}
+                <small class="text-muted">
+                    {% if session_data.status == 'video_created' %}
+                    Uploading...
+                    {% else %}
+                    Upload completed or skipped
+                    {% endif %}
+                </small>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if session_data.status == 'downloaded' %}
+            <div class="text-center mt-4">
+                <div class="alert alert-success mb-4">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Success!</strong> Your flash cards video has been created successfully!
+                    {% if session_data.youtube_info %}
+                    <br><i class="fab fa-youtube text-danger me-1"></i>
+                    <strong>Also uploaded to YouTube!</strong>
+                    {% endif %}
+                </div>
+                
+                {% if session_data.youtube_info %}
+                <div class="alert alert-info mb-4">
+                    <h5><i class="fab fa-youtube text-danger me-2"></i>YouTube Upload Successful!</h5>
+                    <p class="mb-2"><strong>Title:</strong> {{ session_data.youtube_info.title }}</p>
+                    <p class="mb-2"><strong>Privacy:</strong> {{ session_data.youtube_info.privacy|title }}</p>
+                    <p class="mb-3"><strong>Video ID:</strong> {{ session_data.youtube_info.video_id }}</p>
+                    <a href="{{ session_data.youtube_info.url }}" target="_blank" class="btn btn-danger btn-lg mb-2">
+                        <i class="fab fa-youtube me-2"></i>Watch on YouTube
+                    </a>
+                </div>
+                {% endif %}
+                
+                <div class="d-grid gap-2 d-md-block">
+                    <a href="/" class="btn btn-primary btn-lg me-md-2">
+                        <i class="fas fa-plus me-2"></i>Create Another Video
+                    </a>
+                    <a href="/download_video/{{ session_data.session_id }}" class="btn btn-outline-success btn-lg">
+                        <i class="fas fa-download me-2"></i>Download Local Copy
+                    </a>
+                </div>
+            </div>
+            {% elif session_data.status == 'video_created' %}
+            <div class="text-center mt-4">
+                <div class="alert alert-success mb-4">
+                    <i class="fas fa-check-circle me-2"></i>
+                    <strong>Video Created Successfully!</strong>
+                    <br><small>Preview your video below, then choose what to do next.</small>
+                </div>
+                
+                <!-- Video Preview -->
+                {% if session_data.video_path %}
+                <div class="video-preview mb-4">
+                    <h5><i class="fas fa-play me-2"></i>Video Preview</h5>
+                    <video width="100%" height="400" controls style="max-width: 600px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+                        <source src="/preview_video/{{ session_data.session_id }}" type="video/mp4">
+                        Your browser does not support the video tag.
+                    </video>
+                </div>
+                {% endif %}
+                
+                <!-- Action Buttons -->
+                <div class="d-grid gap-2 d-md-block">
+                    <button class="btn btn-danger btn-lg me-md-2" onclick="uploadToYouTube()" id="youtubeBtn">
+                        <i class="fab fa-youtube me-2"></i>Upload to YouTube
+                    </button>
+                    <a href="/download_video/{{ session_data.session_id }}" class="btn btn-success btn-lg me-md-2" onclick="handleDownload()">
+                        <i class="fas fa-download me-2"></i>Download Video
+                    </a>
+                    <a href="/" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-plus me-2"></i>Create Another
+                    </a>
+                </div>
+            </div>
+            {% elif session_data.status == 'images_fetched' %}
+            <div class="text-center mt-4">
+                <a href="/select_images?session_id={{ session_data.session_id }}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-arrow-right me-2"></i>Continue to {{ 'Video' if session_data.content_type == 'video' else 'Image' }} Selection
+                </a>
+            </div>
+            {% else %}
+            <div class="text-center mt-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">Processing...</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.1.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Auto-refresh page every 5 seconds if not complete
+        {% if session_data.status not in ['video_created', 'images_fetched', 'downloaded'] %}
+        setTimeout(() => {
+            location.reload();
+        }, 5000);
+        {% endif %}
+
+        // Handle download click - refresh page after a delay to check for download completion
+        function handleDownload() {
+            setTimeout(() => {
+                location.reload();
+            }, 3000); // Refresh after 3 seconds to update status
+        }
+
+        // YouTube upload function with channel selection
+        async function uploadToYouTube() {
+            try {
+                // First, get available channels
+                const channelsResponse = await fetch('/get_channels/{{ session_data.session_id }}');
+                const channelsResult = await channelsResponse.json();
+                
+                if (!channelsResult.success) {
+                    throw new Error(channelsResult.error || 'Failed to get channels');
+                }
+                
+                const channels = channelsResult.channels;
+                let selectedChannelId = null;
+                
+                // If multiple channels, show selection modal
+                if (channels.length > 1) {
+                    selectedChannelId = await showChannelSelectionModal(channels);
+                    if (selectedChannelId === null) {
+                        return; // User cancelled
+                    }
+                } else if (channels.length === 1) {
+                    selectedChannelId = channels[0].id;
+                } else {
+                    throw new Error('No YouTube channels found');
+                }
+                
+                // Now upload to selected channel
+                const btn = document.getElementById('youtubeBtn');
+                const originalText = btn.innerHTML;
+                
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Uploading to YouTube...';
+                btn.disabled = true;
+                
+                const response = await fetch('/upload_to_youtube/{{ session_data.session_id }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        channel_id: selectedChannelId
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    btn.innerHTML = '<i class="fas fa-check me-2"></i>Uploaded Successfully!';
+                    btn.classList.remove('btn-danger');
+                    btn.classList.add('btn-success');
+                    
+                    // Show YouTube link
+                    setTimeout(() => {
+                        const youtubeUrl = result.youtube_info.url;
+                        const linkHtml = `<a href="${youtubeUrl}" target="_blank" class="btn btn-danger btn-lg me-md-2">
+                            <i class="fab fa-youtube me-2"></i>Watch on YouTube
+                        </a>`;
+                        btn.outerHTML = linkHtml;
+                    }, 2000);
+                    
+                    alert('🎉 Video uploaded to YouTube successfully!\n\nVideo ID: ' + result.youtube_info.video_id);
+                } else {
+                    throw new Error(result.error || 'Upload failed');
+                }
+                
+            } catch (error) {
+                const btn = document.getElementById('youtubeBtn');
+                if (btn) {
+                    btn.innerHTML = '<i class="fab fa-youtube me-2"></i>Upload to YouTube';
+                    btn.disabled = false;
+                }
+                alert('❌ YouTube upload failed: ' + error.message);
+            }
+        }
+        
+        // Show channel selection modal
+        function showChannelSelectionModal(channels) {
+            return new Promise((resolve) => {
+                // Create modal HTML
+                const modalHtml = `
+                    <div class="modal fade" id="channelModal" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="fab fa-youtube text-danger me-2"></i>Select YouTube Channel
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <p>You have multiple YouTube channels. Please select which channel to upload to:</p>
+                                    <div class="list-group">
+                                        ${channels.map(channel => `
+                                            <button type="button" class="list-group-item list-group-item-action channel-option" data-channel-id="${channel.id}">
+                                                <div class="d-flex w-100 justify-content-between">
+                                                    <h6 class="mb-1">${channel.title}</h6>
+                                                    <small class="text-muted">${channel.type === 'managed' ? 'Managed' : 'Owned'}</small>
+                                                </div>
+                                                <p class="mb-1">
+                                                    <i class="fas fa-users me-1"></i>${channel.subscriber_count} subscribers
+                                                    <i class="fas fa-video ms-3 me-1"></i>${channel.video_count} videos
+                                                </p>
+                                            </button>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add modal to page
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('channelModal'));
+                modal.show();
+                
+                // Handle channel selection
+                document.querySelectorAll('.channel-option').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const channelId = button.dataset.channelId;
+                        modal.hide();
+                        resolve(channelId);
+                    });
+                });
+                
+                // Handle modal close/cancel
+                document.getElementById('channelModal').addEventListener('hidden.bs.modal', () => {
+                    document.getElementById('channelModal').remove();
+                    if (!document.querySelector('.channel-selected')) {
+                        resolve(null); // User cancelled
+                    }
+                });
+            });
+        }
+
+        // If video was just created, don't auto-refresh since we want user to preview
+        {% if session_data.status == 'video_created' %}
+        // Video preview is ready, no auto-refresh needed
+        console.log('Video ready for preview');
+        {% endif %}
+    </script>
+</body>
+</html>
